@@ -16,6 +16,7 @@ export const SECRET_KEYS = {
     OPENAI: 'api_key_openai',
     NOVEL: 'api_key_novel',
     CLAUDE: 'api_key_claude',
+    AZURE_CLAUDE: 'api_key_azure_claude',
     DEEPL: 'deepl',
     LIBRE: 'libre',
     LIBRE_URL: 'libre_url',

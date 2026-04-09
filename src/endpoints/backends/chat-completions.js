@@ -211,9 +211,27 @@ function setJsonObjectFormat(bodyParams, messages, jsonSchema) {
  * @param {express.Response} response Express response
  */
 async function sendClaudeRequest(request, response) {
-    const apiUrl = new URL(request.body.reverse_proxy || API_CLAUDE).toString();
-    const apiKey = request.body.reverse_proxy ? request.body.proxy_password : readSecret(request.user.directories, SECRET_KEYS.CLAUDE, request.body.secret_id);
+    const isFoundry = Boolean(request.body.claude_use_foundry);
+    let apiUrl, apiKey, authHeader;
+
+    if (isFoundry && request.body.claude_foundry_resource_url) {
+        apiUrl = new URL(request.body.claude_foundry_resource_url.replace(/\/+$/, '') + '/anthropic/v1').toString();
+        apiKey = readSecret(request.user.directories, SECRET_KEYS.AZURE_CLAUDE);
+        authHeader = { 'x-api-key': apiKey };
+    } else if (request.body.reverse_proxy) {
+        apiUrl = new URL(request.body.reverse_proxy).toString();
+        apiKey = request.body.proxy_password;
+        authHeader = { 'x-api-key': apiKey };
+    } else {
+        apiUrl = new URL(API_CLAUDE).toString();
+        apiKey = readSecret(request.user.directories, SECRET_KEYS.CLAUDE, request.body.secret_id);
+        authHeader = { 'x-api-key': apiKey };
+    }
     const divider = '-'.repeat(process.stdout.columns);
+
+    if (isFoundry) {
+        console.debug(`Foundry mode: URL=${apiUrl}, key present=${!!apiKey}, key length=${apiKey?.length}`);
+    }
 
     if (!apiKey) {
         console.warn(color.red(`Claude API key is missing.\n${divider}`));
@@ -380,7 +398,7 @@ async function sendClaudeRequest(request, response) {
             headers: {
                 'Content-Type': 'application/json',
                 'anthropic-version': '2023-06-01',
-                'x-api-key': apiKey,
+                ...authHeader,
                 ...additionalHeaders,
             },
         });

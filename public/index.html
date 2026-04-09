@@ -3198,6 +3198,23 @@
                                 </select>
                             </div>
                         </form>
+                        <div data-source="claude" class="flex-container flexFlowColumn">
+                            <label class="checkbox_label" for="claude_use_foundry">
+                                <input id="claude_use_foundry" type="checkbox" />
+                                <span data-i18n="Use Azure AI Foundry">Use Azure AI Foundry</span>
+                            </label>
+                            <div id="claude_foundry_settings" class="flex-container flexFlowColumn" style="display: none;">
+                                <label for="claude_foundry_resource_url" data-i18n="Foundry Resource URL">Foundry Resource URL</label>
+                                <input id="claude_foundry_resource_url" class="text_pole" type="text" placeholder="https://your-resource.services.ai.azure.com" autocomplete="off" />
+                                <small data-i18n="Enter just the base URL.">
+                                    Enter just the base URL. The <code>/anthropic/v1/messages</code> path is appended automatically.
+                                </small>
+                                <label for="api_key_azure_claude" data-i18n="Foundry API Key">Foundry API Key</label>
+                                <div class="flex-container">
+                                    <input id="api_key_azure_claude" class="text_pole flex1" type="text" placeholder="Azure API key from Keys and Endpoint page" autocomplete="off" />
+                                </div>
+                            </div>
+                        </div>
                         <form id="openrouter_form" data-source="openrouter" action="javascript:void(null);" method="post" enctype="multipart/form-data">
                             <h4 data-i18n="OpenRouter API Key">OpenRouter API Key</h4>
                             <div>

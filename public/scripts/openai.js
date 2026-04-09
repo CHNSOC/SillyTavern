@@ -310,6 +310,8 @@ export const settingsToUpdate = {
     sort_models: ['#cc_sort_models', 'sort_models', false, true],
     openai_model: ['#model_openai_select', 'openai_model', false, true],
     claude_model: ['#model_claude_select', 'claude_model', false, true],
+    claude_use_foundry: ['#claude_use_foundry', 'claude_use_foundry', true, true],
+    claude_foundry_resource_url: ['#claude_foundry_resource_url', 'claude_foundry_resource_url', false, true],
     openrouter_model: ['#model_openrouter_select', 'openrouter_model', false, true],
     openrouter_use_fallback: ['#openrouter_use_fallback', 'openrouter_use_fallback', true, true],
     openrouter_providers: ['#openrouter_providers_chat', 'openrouter_providers', false, true],
@@ -431,6 +433,8 @@ const default_settings = {
     group_models: false,
     openai_model: 'gpt-4-turbo',
     claude_model: 'claude-sonnet-4-5',
+    claude_use_foundry: false,
+    claude_foundry_resource_url: '',
     google_model: 'gemini-2.5-pro',
     vertexai_model: 'gemini-2.5-pro',
     ai21_model: 'jamba-large',
@@ -2818,6 +2822,10 @@ export async function createGenerationParameters(settings, model, type, messages
                 ? substituteParams(settings.assistant_impersonation)
                 : substituteParams(settings.assistant_prefill);
         }
+        if (settings.claude_use_foundry) {
+            generate_data.claude_use_foundry = true;
+            generate_data.claude_foundry_resource_url = settings.claude_foundry_resource_url;
+        }
     }
 
     if (settings.chat_completion_source === chat_completion_sources.OPENROUTER) {
@@ -4269,6 +4277,7 @@ function loadOpenAISettings(data, settings) {
     $('#bind_preset_to_connection').prop('checked', oai_settings.bind_preset_to_connection);
     $('#openai_external_category').toggle(oai_settings.show_external_models);
     $('.reverse_proxy_warning').toggle(oai_settings.reverse_proxy !== '');
+    $('#claude_foundry_settings').toggle(oai_settings.claude_use_foundry);
 
     // Don't display Service Account JSON in textarea - it's stored in backend secrets
     $('#vertexai_service_account_json').val('');
@@ -4365,6 +4374,16 @@ async function getStatusOpen() {
         chat_completion_sources.MINIMAX,
     ];
     if (noValidateSources.includes(oai_settings.chat_completion_source)) {
+        if (oai_settings.chat_completion_source === chat_completion_sources.CLAUDE && oai_settings.claude_use_foundry) {
+            if (!oai_settings.claude_foundry_resource_url) {
+                setOnlineStatus(t`Foundry Resource URL is required.`);
+                return resultCheckStatus();
+            }
+            if (!secret_state[SECRET_KEYS.AZURE_CLAUDE]) {
+                setOnlineStatus(t`Foundry API Key is required.`);
+                return resultCheckStatus();
+            }
+        }
         let status = t`Key saved; press \"Test Message\" to verify.`;
         setOnlineStatus(status);
         updateFeatureSupportFlags();
@@ -5952,6 +5971,14 @@ async function onConnectButtonClick(e) {
         }
     }
 
+    // Save Foundry API key when using Claude with Azure AI Foundry
+    if (oai_settings.chat_completion_source === chat_completion_sources.CLAUDE && oai_settings.claude_use_foundry) {
+        const foundryApiKey = String($('#api_key_azure_claude').val()).trim();
+        if (foundryApiKey.length) {
+            await writeSecret(SECRET_KEYS.AZURE_CLAUDE, foundryApiKey);
+        }
+    }
+
     // Other generic configs
     const config = apiSourceConfig[oai_settings.chat_completion_source];
     if (config) {
@@ -6867,6 +6894,17 @@ export function initOpenAI() {
 
     $('#claude_assistant_impersonation').on('input', function () {
         oai_settings.assistant_impersonation = String($(this).val());
+        saveSettingsDebounced();
+    });
+
+    $('#claude_use_foundry').on('change', function () {
+        oai_settings.claude_use_foundry = !!$(this).prop('checked');
+        $('#claude_foundry_settings').toggle(oai_settings.claude_use_foundry);
+        saveSettingsDebounced();
+    });
+
+    $('#claude_foundry_resource_url').on('input', function () {
+        oai_settings.claude_foundry_resource_url = String($(this).val()).trim();
         saveSettingsDebounced();
     });
 
